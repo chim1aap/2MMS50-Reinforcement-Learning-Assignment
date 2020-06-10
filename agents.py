@@ -1,6 +1,8 @@
-
+import gym
 #TODO:
-def td_learning():
+def td_learning(observation, actions, reward ):
+
+
     return()
 
 #TODO
@@ -11,3 +13,4 @@ def q_learning():
 # TODO
 def sarsa():
     return(1)
+

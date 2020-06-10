@@ -2,7 +2,7 @@ import gym
 
 # Choose an environment from https :// gym . openai . com / envs /# atari
 env = gym.make( "Centipede-ram-v0" )
-
+env = gym.make( "SpaceInvaders-ram-v0")
 
 print(env.action_space)
 print(env.observation_space)

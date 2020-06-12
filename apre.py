@@ -36,7 +36,9 @@ def run():
           env.action_space.n)
     Q = numpy.ones(shape=(
     env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
-
+    for  i in range(len(Q)):
+        for j in range(len(Q[0,0,0])):
+            Q[i,maxX,maxY,j] = 0
 
     # Run the Game
     for t in tqdm(range(n)):

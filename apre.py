@@ -15,13 +15,16 @@ width, height = 210, 160
 Runs a game 
 '''
 
-
+maxX = 209
+maxY = 159
 def run():
     # initialize
     env.reset()
-    xMinBall, xMaxBall = 0, 500
-    yMinBall, yMaxBall = 0, 500
-    tBallSearch = 1000
+    xMinBall, xMaxBall = 0, maxX
+    yMinBall, yMaxBall = 0, maxY
+
+    n = 10000
+    tBallSearch = n
     searchTimePaused = 10
     state = 0
     Qold = 1
@@ -33,12 +36,10 @@ def run():
           env.action_space.n)
     Q = numpy.ones(shape=(
     env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
-    # print(Q.ndim)
-    # print(Q[[4,3,3,3]] )
-    print(Q[7, 6, 5, 3])
+
 
     # Run the Game
-    for t in tqdm(range(1000)):
+    for t in tqdm(range(n)):
         # time.sleep(1 / 30)
         # env.render()
 
@@ -84,8 +85,8 @@ def run():
 
 def ballmove(x, xmax, y, ymax, observation):
     if abs(x - xmax) > 5:  # ball gone: search entire board.
-        xMaxBall, xMinBall = 0, 250
-        yMaxBall, yMinBall = 0, 250
+        xMaxBall, xMinBall = 0, maxX
+        yMaxBall, yMinBall = 0, maxY
         # for x in range(max ( 0, xlast -searchRange ), min(xlast + searchRange, width) ):
         for x in range(0, width):
             if x in range(57, 63):  # die rode balk
@@ -103,8 +104,8 @@ def ballmove(x, xmax, y, ymax, observation):
         searchRange = 5
         xlast = x
         ylast = y
-        xMaxBall, xMinBall = 0, 500
-        yMaxBall, yMinBall = 0, 500
+        xMaxBall, xMinBall = 0, maxX
+        yMaxBall, yMinBall = 0, maxY
         for x in range(xlast - searchRange, min(xlast + searchRange, 190)):
             if x in range(57, 63):  # die rode balk
                 continue  # go to next loop
@@ -126,7 +127,7 @@ def ballmove(x, xmax, y, ymax, observation):
 
 
 def playermove(observation):
-    ymax, ymin = 0, 500
+    ymax, ymin = 0, 210
     x = 190
     # for x in range(max(0, xlast -searchRange ) , min(  xlast + searchRange, width  ) ):
     for y in range(8, 151):

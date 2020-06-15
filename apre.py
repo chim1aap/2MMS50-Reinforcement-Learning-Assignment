@@ -32,7 +32,7 @@ def monteCarlo():
 
     # load from file
     ll = "./SARSA/" + str(9)  + ".npy"
-    ls  = numpy.load(ll)
+    ls = numpy.load(ll)
 
     # Sanity check
     print(sum(sum(sum(sum(ls == Qstart )) ) ))
@@ -41,12 +41,23 @@ def monteCarlo():
 
     # Begin looping and training.
     for i in tqdm(range(10)):
-        Q =run(Q)
+        Q, totalReward =run(Q)
+
+        print(totalReward)
 
         # Save results in case the PC crashes *again*
         savefile = "./SARSA/" + str(i) + ".npy"
         print(savefile)
         numpy.save(savefile, Q)
+
+        # remove old ones because they are 200Mb in size.
+
+        removefile = "./SARSA/" + str(i-5) + ".npy"
+        print(removefile)
+        try:
+            os.remove(removefile)
+        except: #ignore errors and continue
+            pass
 '''
 Runs a game 
 '''
@@ -66,6 +77,7 @@ def run(Q):
     alpha = 0.7
     gamma = 0.7
     epsilon = 0.1
+    totalReward = 0
     # Run the Game
     for t in (range(n)):
         # time.sleep(1 / 30)
@@ -113,7 +125,7 @@ def run(Q):
         Q[xmin][ xMinBall][ yMinBall][ action] = Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
 
         # print(xmin, xMinBall, yMinBall, action, Q[xmin,xMinBall, yMinBall, action])
-
+        totalReward = totalReward + reward
         #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
         #print(Qold)
         #print( Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action]))
@@ -124,7 +136,7 @@ def run(Q):
             break
     print(sum(sum(sum(sum(Q == Qstart )) ) ))
     env.close()
-    return(Q)
+    return(Q, totalReward)
 
 
 def ballmove(x, xmax, y, observation):

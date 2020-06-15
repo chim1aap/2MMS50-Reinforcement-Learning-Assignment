@@ -3,6 +3,7 @@ import time
 import numpy
 import random
 import os
+import pickle
 from tqdm import tqdm
 
 # Choose an environment from https :// gym . openai . com / envs /# atari
@@ -20,7 +21,7 @@ Q = numpy.ones(shape=(
 for i in range(len(Q)):
     for j in range(len(Q[0, 0, 0])):
         Q[i, maxX, maxY, j] = 0
-#print(Q)
+# print(Q)
 # width , height = env.observation_space[1], env.observation_space[2]
 width, height = 210, 160
 
@@ -29,35 +30,57 @@ Qstart = numpy.copy(Q)
 
 def monteCarlo():
     global Q
+    rewards = []
+    k = 190  # iteration to load from .
 
-    # load from file
-    ll = "./SARSA/" + str(9)  + ".npy"
-    ls = numpy.load(ll)
+    # load Q from file
+    try:
+        Q = numpy.load("./SARSA/save" + str(k) + ".npy")
 
-    # Sanity check
-    print(sum(sum(sum(sum(ls == Qstart )) ) ))
-    print(210*210*160*4)
-    print(Q.shape)
+        # load rewards from file
+        with open("./SARSA/rewards"+str(k) +".pkl", 'rb') as fp:
+            print(fp)
+            rewards = pickle.load(fp)
+        print(len(rewards))
+        print(sum(rewards))
+
+        # Sanity check
+        print(sum(sum(sum(sum(Q == Qstart)))))
+        print(210 * 210 * 160 * 4)
+        print(Q.shape)
+    except FileNotFoundError as e:
+        print(e)
+        k = 0
+    # rewardvectors and recording stuff:
 
     # Begin looping and training.
-    for i in tqdm(range(10)):
-        Q, totalReward =run(Q)
+    for i in tqdm(range(k, k +1 + 100)):
+        Q, totalReward = run(Q)
 
-        print(totalReward)
+        rewards.append(totalReward)
+        # Save results in case the PC crashes *again*, after every 10 games.
+        if i % 10 == 0:
+            # store Q
+            numpy.save("./SARSA/save" + str(i) + ".npy", Q)
+            # store rewardvector.
+            with open("./SARSA/rewards" + str(i) + ".pkl", 'wb') as fp:
+                pickle.dump(rewards, fp)
 
-        # Save results in case the PC crashes *again*
-        savefile = "./SARSA/" + str(i) + ".npy"
-        print(savefile)
-        numpy.save(savefile, Q)
+            # remove old ones because they are 200Mb in size.
+            try:
+                os.remove("./SARSA/save" + str(i - 5 * 10) + ".npy")
+                os.remove("./SARSA/rewards" + str(i - 5 * 10) + ".pkl")
+            except FileNotFoundError as e:  # ignore errors and continue
+                # pass # do nothing
+                print(e)
+    '''
+    Save stuff after simulations - just in case. 
+    '''
+    numpy.save("./SARSA/saveEnd" + str(i) + ".npy", Q)
+    with open("./SARSA/rewards" + str(i) + ".pkl", 'wb') as fp:
+        pickle.dump(rewards, fp)
 
-        # remove old ones because they are 200Mb in size.
 
-        removefile = "./SARSA/" + str(i-5) + ".npy"
-        print(removefile)
-        try:
-            os.remove(removefile)
-        except: #ignore errors and continue
-            pass
 '''
 Runs a game 
 '''
@@ -69,7 +92,7 @@ def run(Q):
     xMinBall, xMaxBall = 0, maxX
     yMinBall, yMaxBall = 0, maxY
 
-    n = 10000
+    n = 100
     tBallSearch = n
     searchTimePaused = 10
     state = 0
@@ -84,12 +107,12 @@ def run(Q):
         # env.render()
 
         # Choose Random Action.
-        if random.uniform(0,1) < epsilon: # t bigger than 2 else Qarray is not initialized.
+        if random.uniform(0, 1) < epsilon:  # t bigger than 2 else Qarray is not initialized.
             action = env.action_space.sample()
-        elif t< 31:
+        elif t < 31:
             action = env.action_space.sample()
         else:
-            Qarray = Q[xmin, xMinBall, yMinBall] #array of the rewards of the actions in this particular state.
+            Qarray = Q[xmin, xMinBall, yMinBall]  # array of the rewards of the actions in this particular state.
             action = numpy.argmax(Qarray)
 
         # Take the Action, make an observation from the environment and obtain a reward.
@@ -117,26 +140,23 @@ def run(Q):
         It is always at a certain y position, so we only need to update x.
         '''
         xmin, xmax = playermove(observation)
-        #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
+        # print(xMinBall, xMaxBall, yMinBall, yMaxBall)
         # # Update the Q function (SARSA)
         # Q(S,a) <- Q(S,A) + \alpha ( R + \gamma Q(S', A' ) - Q(S,A) )
         # S,a = (xPlayer, xBall, yBall, action )
-        #Q[xmin, xMinBall, yMinBall, action] = Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
-        Q[xmin][ xMinBall][ yMinBall][ action] = Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
+        Q[xmin][xMinBall][yMinBall][action] = Q[xmin, xMinBall, yMinBall, action] + alpha * (
+                    reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
 
-        # print(xmin, xMinBall, yMinBall, action, Q[xmin,xMinBall, yMinBall, action])
         totalReward = totalReward + reward
-        #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
-        #print(Qold)
-        #print( Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action]))
+
         Qold = Q[xmin, xMinBall, yMinBall, action]
-        # print("player is ", xmin, xmax, "ball is", xMinBall, xMaxBall, yMinBall, yMaxBall)
+
         if done:
-            #print(" Episode finished after {} timesteps ".format(t + 1))
+            # print(" Episode finished after {} timesteps ".format(t + 1))
             break
-    print(sum(sum(sum(sum(Q == Qstart )) ) ))
+
     env.close()
-    return(Q, totalReward)
+    return (Q, totalReward)
 
 
 def ballmove(x, xmax, y, observation):
@@ -178,7 +198,7 @@ def ballmove(x, xmax, y, observation):
                     xMinBall = min(x, xMinBall)
                     yMaxBall = max(y, yMaxBall)
                     yMinBall = min(y, yMinBall)
-    #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
+    # print(xMinBall, xMaxBall, yMinBall, yMaxBall)
     return xMinBall, xMaxBall, yMinBall, yMaxBall
 
 

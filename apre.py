@@ -140,16 +140,23 @@ def run(Q):
         It is always at a certain y position, so we only need to update x.
         '''
         xmin, xmax = playermove(observation)
-        # print(xMinBall, xMaxBall, yMinBall, yMaxBall)
-        # # Update the Q function (SARSA)
+
+        '''
+        Update the Q function (SARSA)
+        These lines should be changed to have other policies (Qlearning, TD)
+        '''
         # Q(S,a) <- Q(S,A) + \alpha ( R + \gamma Q(S', A' ) - Q(S,A) )
         # S,a = (xPlayer, xBall, yBall, action )
         Q[xmin][xMinBall][yMinBall][action] = Q[xmin, xMinBall, yMinBall, action] + alpha * (
                     reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
+        Qold = Q[xmin, xMinBall, yMinBall, action]
 
+        '''
+        Logging
+        '''
         totalReward = totalReward + reward
 
-        Qold = Q[xmin, xMinBall, yMinBall, action]
+
 
         if done:
             # print(" Episode finished after {} timesteps ".format(t + 1))

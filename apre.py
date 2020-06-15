@@ -1,23 +1,58 @@
 import gym
 import time
 import numpy
+import random
+import os
 from tqdm import tqdm
 
 # Choose an environment from https :// gym . openai . com / envs /# atari
 env = gym.make("Centipede-ram-v0")
 env = gym.make("SpaceInvaders-ram-v0")
 env = gym.make("Breakout-v0")
-print(env.action_space)
-print(env.observation_space)
+maxX = 209
+maxY = 159
+
+### Q states.
+# There are three parameters: player x, ball x, ball y. And the Action
+# print(env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1],env.action_space.n)
+Q = numpy.ones(shape=(
+    env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
+for i in range(len(Q)):
+    for j in range(len(Q[0, 0, 0])):
+        Q[i, maxX, maxY, j] = 0
+#print(Q)
 # width , height = env.observation_space[1], env.observation_space[2]
 width, height = 210, 160
+
+Qstart = numpy.copy(Q)
+
+
+def monteCarlo():
+    global Q
+
+    # load from file
+    ll = "./SARSA/" + str(9)  + ".npy"
+    ls  = numpy.load(ll)
+
+    # Sanity check
+    print(sum(sum(sum(sum(ls == Qstart )) ) ))
+    print(210*210*160*4)
+    print(Q.shape)
+
+    # Begin looping and training.
+    for i in tqdm(range(10)):
+        Q =run(Q)
+
+        # Save results in case the PC crashes *again*
+        savefile = "./SARSA/" + str(i) + ".npy"
+        print(savefile)
+        numpy.save(savefile, Q)
 '''
 Runs a game 
 '''
 
-maxX = 209
-maxY = 159
-def run():
+
+def run(Q):
     # initialize
     env.reset()
     xMinBall, xMaxBall = 0, maxX
@@ -28,25 +63,22 @@ def run():
     searchTimePaused = 10
     state = 0
     Qold = 1
-    alpha = 0.3
-    gamma = 0.3
-    ### Q states.
-    # There are three parameters: player x, ball x, ball y. And the Action
-    print(env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1],
-          env.action_space.n)
-    Q = numpy.ones(shape=(
-    env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
-    for  i in range(len(Q)):
-        for j in range(len(Q[0,0,0])):
-            Q[i,maxX,maxY,j] = 0
-
+    alpha = 0.7
+    gamma = 0.7
+    epsilon = 0.1
     # Run the Game
-    for t in tqdm(range(n)):
+    for t in (range(n)):
         # time.sleep(1 / 30)
         # env.render()
 
         # Choose Random Action.
-        action = env.action_space.sample()
+        if random.uniform(0,1) < epsilon: # t bigger than 2 else Qarray is not initialized.
+            action = env.action_space.sample()
+        elif t< 31:
+            action = env.action_space.sample()
+        else:
+            Qarray = Q[xmin, xMinBall, yMinBall] #array of the rewards of the actions in this particular state.
+            action = numpy.argmax(Qarray)
 
         # Take the Action, make an observation from the environment and obtain a reward.
         observation, reward, done, info = env.step(action)
@@ -59,33 +91,43 @@ def run():
         if state == 0:  # Ball out and pause
             tBallSearch = t + searchTimePaused  # search for the ball after some time steps.
             state = 1
+
         if state == 1:  # Ball out and resume
             if tBallSearch < t:
                 state = 2
         if state == 2:  # Ball in the game.
-            xMinBall, xMaxBall, yMinBall, yMaxBall = ballmove(xMinBall, xMaxBall, yMinBall, yMaxBall, observation)
+            xMinBall, xMaxBall, yMinBall, yMaxBall = ballmove(xMinBall, xMaxBall, yMinBall, observation)
             if abs(xMaxBall - xMinBall) > 10:
                 state = 0
 
-        ### update the player position
-        # It is always at a certain y position, so we only need to update x.
+        '''
+        update the player position
+        It is always at a certain y position, so we only need to update x.
+        '''
         xmin, xmax = playermove(observation)
-
-        ### Update the Q function (SARSA)
+        #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
+        # # Update the Q function (SARSA)
         # Q(S,a) <- Q(S,A) + \alpha ( R + \gamma Q(S', A' ) - Q(S,A) )
-        # S,a = (xPlayer, xBall, yBall, action
-        Q[xmin, xMinBall, yMinBall, action] = Q[xmin, xMinBall, yMinBall, action] + alpha * (
-                    reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
+        # S,a = (xPlayer, xBall, yBall, action )
+        #Q[xmin, xMinBall, yMinBall, action] = Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
+        Q[xmin][ xMinBall][ yMinBall][ action] = Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action])
+
+        # print(xmin, xMinBall, yMinBall, action, Q[xmin,xMinBall, yMinBall, action])
+
+        #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
+        #print(Qold)
+        #print( Q[xmin, xMinBall, yMinBall, action] + alpha * ( reward + gamma * Qold - Q[xmin, xMinBall, yMinBall, action]))
         Qold = Q[xmin, xMinBall, yMinBall, action]
         # print("player is ", xmin, xmax, "ball is", xMinBall, xMaxBall, yMinBall, yMaxBall)
         if done:
-            print(" Episode finished after {} timesteps ".format(t + 1))
+            #print(" Episode finished after {} timesteps ".format(t + 1))
             break
-
+    print(sum(sum(sum(sum(Q == Qstart )) ) ))
     env.close()
+    return(Q)
 
 
-def ballmove(x, xmax, y, ymax, observation):
+def ballmove(x, xmax, y, observation):
     if abs(x - xmax) > 5:  # ball gone: search entire board.
         xMaxBall, xMinBall = 0, maxX
         yMaxBall, yMinBall = 0, maxY
@@ -124,7 +166,7 @@ def ballmove(x, xmax, y, ymax, observation):
                     xMinBall = min(x, xMinBall)
                     yMaxBall = max(y, yMaxBall)
                     yMinBall = min(y, yMinBall)
-
+    #print(xMinBall, xMaxBall, yMinBall, yMaxBall)
     return xMinBall, xMaxBall, yMinBall, yMaxBall
 
 
@@ -142,6 +184,8 @@ def playermove(observation):
 '''
 prints a observation. Also pauses the game. 
 '''
+
+
 def print_observation(observation):
     for x in range(len(observation)):
         for y in range(len(observation[x])):
@@ -158,4 +202,4 @@ def print_observation(observation):
 # ball = [200, 72, 72]
 # enemies = De rest
 
-run()
+monteCarlo()

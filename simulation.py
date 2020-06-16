@@ -11,16 +11,21 @@ def simulateGame(n):
     env.reset()
     # numpy
     actions = []
+
     for t in range(n):
         # initialeze arrays
         actionList = np.empty(n)
         rewardList = np.empty(n)
 
         # select action:
-        actionList[t] = env.action_space.sample()
+
+        # actionList[t] = env.action_space.sample()
+        actionList[t] = agent.td_learning(observation, lastaction, reward)
 
         # observation, reward, done, info = env.step(action)
         observation, rewardList[t], done, info = env.step(int(actionList[t] ))
+        lastAction = actionList[t]
+
         if done :
             break
     env.close()

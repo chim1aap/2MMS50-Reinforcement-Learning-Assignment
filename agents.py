@@ -1,6 +1,13 @@
 import gym
+
 import numpy
 import random
+
+#TODO:
+def td_learning(observation, actions, reward ):
+
+
+    return()
 
 
 # TODO:
@@ -53,3 +60,7 @@ class Agents:
     # TODO
     def sarsa(self):
         return (1)
+
+# TODO
+def sarsa():
+    return(1)

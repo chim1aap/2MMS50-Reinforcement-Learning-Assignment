@@ -17,17 +17,17 @@ maxY = 159
 # There are three parameters: player x, ball x, ball y. And the Action
 # print(env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1],env.action_space.n)
 Q = numpy.ones(shape=(
-    env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1]))
+    env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
 for i in range(len(Q)):
-    for j in range(len(Q[0, 0])):
-        Q[i, maxX, maxY] = 0
+    for j in range(len(Q[0, 0, 0])):
+        Q[i, maxX, maxY, j] = 0
 # print(Q)
 # width , height = env.observation_space[1], env.observation_space[2]
 width, height = 210, 160
-
+checkpointdistance = 100 #save checkpoint.
 Qstart = numpy.copy(Q)
 
-checkpointdistance = 100
+
 def monteCarlo():
     global Q
     rewards = []
@@ -35,10 +35,10 @@ def monteCarlo():
 
     # load Q from file
     try:
-        Q = numpy.load("./tdlearning/save" + str(k) + ".npy")
+        Q = numpy.load("./Qlearning/save" + str(k) + ".npy")
 
         # load rewards from file
-        with open("./tdlearning/rewards"+str(k) +".pkl", 'rb') as fp:
+        with open("./Qlearning/rewards"+str(k) +".pkl", 'rb') as fp:
             print(fp)
             rewards = pickle.load(fp)
         print(len(rewards))
@@ -54,30 +54,30 @@ def monteCarlo():
     # rewardvectors and recording stuff:
 
     # Begin looping and training.
-    for i in tqdm(range(k, k +1 + 10000) , desc= "Td: "):
+    for i in tqdm(range(k, k +1 + 10000), desc= "qlearning: "):
         Q, totalReward = run(Q)
 
         rewards.append(totalReward)
         # Save results in case the PC crashes *again*, after every 10 games.
         if i % checkpointdistance == 0:
             # store Q
-            numpy.save("./tdlearning/save" + str(i) + ".npy", Q)
+            numpy.save("./Qlearning/save" + str(i) + ".npy", Q)
             # store rewardvector.
-            with open("./tdlearning/rewards" + str(i) + ".pkl", 'wb') as fp:
+            with open("./Qlearning/rewards" + str(i) + ".pkl", 'wb') as fp:
                 pickle.dump(rewards, fp)
 
             # remove old ones because they are 200Mb in size.
             try:
-                os.remove("./tdlearning/save" + str(i - 5 * checkpointdistance) + ".npy")
-                os.remove("./tdlearning/rewards" + str(i - 5 * checkpointdistance) + ".pkl")
+                os.remove("./Qlearning/save" + str(i - 5 * checkpointdistance) + ".npy")
+                os.remove("./Qlearning/rewards" + str(i - 5 * checkpointdistance) + ".pkl")
             except FileNotFoundError as e:  # ignore errors and continue
                 # pass # do nothing
                 print(e)
     '''
     Save stuff after simulations - just in case. 
     '''
-    numpy.save("./tdlearning/saveEnd" + str(i) + ".npy", Q)
-    with open("./tdlearning/rewards" + str(i) + ".pkl", 'wb') as fp:
+    numpy.save("./Qlearning/saveEnd" + str(i) + ".npy", Q)
+    with open("./Qlearning/rewards" + str(i) + ".pkl", 'wb') as fp:
         pickle.dump(rewards, fp)
 
 
@@ -96,7 +96,7 @@ def run(Q):
     tBallSearch = n
     searchTimePaused = 10
     state = 0
-    Qold = 1
+    QoldArray = 1
     alpha = 0.7
     gamma = 0.7
     epsilon = 0.1
@@ -142,15 +142,15 @@ def run(Q):
         xmin, xmax = playermove(observation)
 
         '''
-        Update the Q function (tdlearning)
-        These lines should be changed to have other policies (Qlearning, Sarsa)
+        Update the Q function (Qlearning)
+        These lines should be changed to have other policies (SARSA, TD)
         '''
-        # V(S) <- V(S) + \alpha ( R + \gamma V(S') - V(S) )
+        # Q(S,a) <- Q(S,A) + \alpha ( R + \gamma max_a Q(S',a) - Q(S,A) )
         # S,a = (xPlayer, xBall, yBall, action )
-        Q[xmin][xMinBall][yMinBall] = Q[xmin, xMinBall, yMinBall] + alpha * (
-                    reward + gamma * Qold - Q[xmin, xMinBall, yMinBall])
-        Qold = Q[xmin, xMinBall, yMinBall]
-
+        maxa = numpy.argmax(QoldArray)
+        Q[xmin][xMinBall][yMinBall][action] = Q[xmin, xMinBall, yMinBall, action] + alpha * (
+                    reward + gamma * maxa - Q[xmin, xMinBall, yMinBall, action])
+        QoldArray = Q[xmin,xMinBall,yMinBall]
         '''
         Logging
         '''

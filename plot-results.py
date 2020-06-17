@@ -56,4 +56,4 @@ g = (ggplot(df) +
 #print(g)
 
 #save to file
-g.save(filename="results.pdf")
+g.save(filename="./images/results.pdf")

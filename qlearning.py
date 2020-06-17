@@ -7,25 +7,29 @@ import pickle
 from tqdm import tqdm
 
 # Choose an environment from https :// gym . openai . com / envs /# atari
-env = gym.make("Centipede-ram-v0")
-env = gym.make("SpaceInvaders-ram-v0")
 env = gym.make("Breakout-v0")
 maxX = 209
 maxY = 159
 
-### Q states.
+'''
+Q states.
 # There are three parameters: player x, ball x, ball y. And the Action
 # print(env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1],env.action_space.n)
+'''
 Q = numpy.ones(shape=(
     env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
 for i in range(len(Q)):
     for j in range(len(Q[0, 0, 0])):
         Q[i, maxX, maxY, j] = 0
-# print(Q)
-# width , height = env.observation_space[1], env.observation_space[2]
 width, height = 210, 160
-checkpointdistance = 100 #save checkpoint.
 Qstart = numpy.copy(Q)
+
+'''
+This implementation saves to disk after "checkpointdistance" amount of games. 
+"k" can be set to an earlier training and continue from there, 
+but it will restart if it can't find the training data. 
+'''
+checkpointdistance = 100 #save checkpoint.
 
 
 def monteCarlo():
@@ -51,14 +55,13 @@ def monteCarlo():
     except FileNotFoundError as e:
         print(e)
         k = 0
-    # rewardvectors and recording stuff:
 
     # Begin looping and training.
     for i in tqdm(range(k, k +1 + 10000), desc= "qlearning: "):
         Q, totalReward = run(Q)
 
         rewards.append(totalReward)
-        # Save results in case the PC crashes *again*, after every 10 games.
+        # Save results in case the PC crashes *again*, after every something games.
         if i % checkpointdistance == 0:
             # store Q
             numpy.save("./Qlearning/save" + str(i) + ".npy", Q)
@@ -103,11 +106,9 @@ def run(Q):
     totalReward = 0
     # Run the Game
     for t in (range(n)):
-        # time.sleep(1 / 30)
-        # env.render()
 
-        # Choose Random Action.
-        if random.uniform(0, 1) < epsilon:  # t bigger than 2 else Qarray is not initialized.
+        # Choose epsilon greedy policy Action.
+        if random.uniform(0, 1) < epsilon:  # t bigger than 31 else Qarray is not initialized.
             action = env.action_space.sample()
         elif t < 31:
             action = env.action_space.sample()
@@ -164,6 +165,13 @@ def run(Q):
 
     env.close()
     return (Q, totalReward)
+
+
+'''
+finds the location of the ball in the game, 
+Searches nearby if the ball is in game, 
+otherwise searches the entire board. 
+'''
 
 
 def ballmove(x, xmax, y, observation):

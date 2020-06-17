@@ -1,22 +1,4 @@
 import gym
-import numpy
-import random
-from tqdm import tqdm
-
-
-
-
-env = gym.make("Centipede-ram-v0")
-env = gym.make("Centipede-v0") #image version.
-
-env = gym.make("Breakout-v0")
-env.reset()
-
-
-alpha = 0.1
-gamma = 1
-epsilon = 0.1
-import gym
 import time
 import numpy
 import random
@@ -25,26 +7,30 @@ import pickle
 from tqdm import tqdm
 
 # Choose an environment from https :// gym . openai . com / envs /# atari
-env = gym.make("Centipede-ram-v0")
-env = gym.make("SpaceInvaders-ram-v0")
 env = gym.make("Breakout-v0")
 maxX = 209
 maxY = 159
 
-### Q states.
+'''
+Q states.
 # There are three parameters: player x, ball x, ball y. And the Action
 # print(env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1],env.action_space.n)
+'''
 Q = numpy.ones(shape=(
     env.observation_space.shape[0], env.observation_space.shape[0], env.observation_space.shape[1], env.action_space.n))
 for i in range(len(Q)):
     for j in range(len(Q[0, 0, 0])):
         Q[i, maxX, maxY, j] = 0
-# print(Q)
-# width , height = env.observation_space[1], env.observation_space[2]
+
 width, height = 210, 160
 checkpointdistance = 100
 Qstart = numpy.copy(Q)
 
+'''
+This implementation saves to disk after "checkpointdistance" amount of games. 
+"k" can be set to an earlier training and continue from there, 
+but it will restart if it can't find the training data. 
+'''
 
 def monteCarlo():
     global Q
@@ -69,14 +55,13 @@ def monteCarlo():
     except FileNotFoundError as e:
         print(e)
         k = 0
-    # rewardvectors and recording stuff:
 
     # Begin looping and training.
     for i in tqdm(range(k, k +1 + 10000), desc="Sarsa: "):
         Q, totalReward = run(Q)
 
         rewards.append(totalReward)
-        # Save results in case the PC crashes *again*, after every 10 games.
+        # Save results in case the PC crashes *again*, after every something games.
         if i % checkpointdistance == 0:
             # store Q
             numpy.save("./SARSA/save" + str(i) + ".npy", Q)
@@ -121,10 +106,8 @@ def run(Q):
     totalReward = 0
     # Run the Game
     for t in (range(n)):
-        # time.sleep(1 / 30)
-        # env.render()
 
-        # Choose Random Action.
+        # Choose epsilon greedy policy Action.
         if random.uniform(0, 1) < epsilon:  # t bigger than 2 else Qarray is not initialized.
             action = env.action_space.sample()
         elif t < 31:
@@ -183,6 +166,11 @@ def run(Q):
     env.close()
     return (Q, totalReward)
 
+'''
+finds the location of the ball in the game, 
+Searches nearby if the ball is in game, 
+otherwise searches the entire board. 
+'''
 
 def ballmove(x, xmax, y, observation):
     if abs(x - xmax) > 5:  # ball gone: search entire board.
@@ -261,29 +249,3 @@ def print_observation(observation):
 
 monteCarlo()
 
-n = 10000
-prevAction = 0
-prevState = 0
-states = []
-actions = env.action_space
-## First step
-act = actions.sample()
-observation, reward, done, info = env.step(act )
-prevAction = act
-prevOvservation = observation
-## Suppose Q only takes the action in consideration.
-Q = [1]*env.action_space.n
-for t in range(n):
-    # select according to Epsilon Greedy.
-    if epsilon < random.uniform(0, 1):
-        # select at random
-        act = actions.sample()
-    else:
-        # select greedy.
-        act = numpy.argmax(Q)  # todo
-
-
-    # Take Action, R=reward, S'=observation
-    observation, reward, done, info = env.step(act )
-    # Q(S,a) <- Q(S,A) + \alpha ( R + \gamma Q(S', A' ) - Q(S,A) )
-    Q[act] = Q[act] + alpha *( reward + gamma * Q[prevAction] - Q[act])
